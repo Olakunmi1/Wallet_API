@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29613.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wallet_API", "Wallet_API.csproj", "{ED851247-5E27-41EC-9E3B-682F7F1AB6C9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wallet.Data", "Wallet.Data\Wallet.Data.csproj", "{1267BDBD-1003-4984-9455-ECC76ED2BD11}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Wallet.Services", "Wallet.Services\Wallet.Services.csproj", "{9669922D-B0AC-43E8-ADBB-F979DD9357D5}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ED851247-5E27-41EC-9E3B-682F7F1AB6C9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED851247-5E27-41EC-9E3B-682F7F1AB6C9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED851247-5E27-41EC-9E3B-682F7F1AB6C9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED851247-5E27-41EC-9E3B-682F7F1AB6C9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1267BDBD-1003-4984-9455-ECC76ED2BD11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1267BDBD-1003-4984-9455-ECC76ED2BD11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1267BDBD-1003-4984-9455-ECC76ED2BD11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1267BDBD-1003-4984-9455-ECC76ED2BD11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9669922D-B0AC-43E8-ADBB-F979DD9357D5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9669922D-B0AC-43E8-ADBB-F979DD9357D5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9669922D-B0AC-43E8-ADBB-F979DD9357D5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9669922D-B0AC-43E8-ADBB-F979DD9357D5}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {32EB0ECA-E9A6-4C05-B41E-111E1D4A3EE8}
+	EndGlobalSection
+EndGlobal
