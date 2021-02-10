@@ -5,11 +5,13 @@ using System.Text;
 using System.Threading.Tasks;
 using IdentityModel;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,8 +19,11 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json.Serialization;
 using Wallet.Data.Dbcontext;
 using Wallet.Data.Entities;
+using Wallet.Data.Interface;
+using Wallet.Services.Services;
 using Wallet_API.Helpers;
 
 namespace Wallet_API
@@ -37,12 +42,53 @@ namespace Wallet_API
         {
             services.AddControllers();
 
+            //quite important for json serialization--support for json input and output json
+            services.AddControllers()
+                     .AddNewtonsoftJson(options =>
+                     {
+                         options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
+                         options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
+                     });
+
+
             services.AddDbContext<ApplicationDbContext>(options =>
                options.UseSqlServer(
                    Configuration.GetConnectionString("DefaultConnection")));
+            //registering the interfaces
+            services.AddScoped<ISystemuserRepo, SystemUserRepository>();
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            //below we are applying Authorization Globally instead of applying it on each controller
+            services.AddMvc(options =>
+            {
+                var policy = new AuthorizationPolicyBuilder()
+                                .RequireAuthenticatedUser()
+                                .Build();
+                options.Filters.Add(new AuthorizeFilter(policy));
+            });
+
+            //configure identity options for passwprds
+            services.Configure<IdentityOptions>(options =>
+            {
+                // Password settings
+                options.Password.RequireDigit = false;
+                options.Password.RequiredLength = 4;
+                options.Password.RequireNonAlphanumeric = false;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequiredUniqueChars = 1;
+
+                //// Lockout settings
+                
+                //options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                //options.Lockout.MaxFailedAccessAttempts = 3;
+                //options.Lockout.AllowedForNewUsers = true;
+
+                // User settings
+                options.User.RequireUniqueEmail = true;
+            });
 
 
             //Jwt Config
@@ -68,6 +114,27 @@ namespace Wallet_API
                    };
                });
 
+            /*
+            //the small piece below configures a cookie for identity to return the right thing "401" on redirect to login
+            services.ConfigureApplicationCookie(options =>
+            {
+                //on trying to redirect to login page 4 authentication give us 401
+                options.Events.OnRedirectToLogin = context =>
+                {
+                    context.Response.StatusCode = 401;
+
+                    return Task.CompletedTask;
+                };
+                //on trying to redirect to acces denied gives us 403
+                options.Events.OnRedirectToAccessDenied = context =>
+                {
+                    context.Response.StatusCode = 403;
+
+                    return Task.CompletedTask;
+                };
+            });
+            */
+
             //Swagger config 
             services.AddSwaggerGen(options =>
             {
@@ -78,10 +145,6 @@ namespace Wallet_API
                     Version = "v2",
                     Description = "A Wallet Api that enables user to Register, create wallet Account, Fund and Transfer",
                 });
-
-                ////Inorder for the Xml documentation to show ... Also Xml docmentation is enable in project prop
-                //options.IncludeXmlComments(System.IO.Path.Combine(System.AppContext.BaseDirectory, "AuthenticationApi.xml"));
-
 
                 //For Authorization Key Button to come up, and to activate token from SwaggerUI
                 options.AddSecurityDefinition("bearer", new OpenApiSecurityScheme
