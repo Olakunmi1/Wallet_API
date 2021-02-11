@@ -302,10 +302,120 @@ namespace Wallet_API.Controllers
 
         //systemt user id needed
         [HttpPost("TransferFund/{Id}")]
-        public async Task<IActionResult> TransferFund(int Id, FundWalletModel model)
+        public async Task<IActionResult> TransferFund(int Id, TransferFundDTOW model)
         {
+            try
+            {
+                var refff = Guid.NewGuid().ToString(); //ref for this transaction
 
-            return null;
+                //check if user exist 
+                var userss = _systemuser.getSingleSystemUser(Id);
+                if (userss == null)
+                {
+                    //bounce back if they dont exist 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+                //check if wallet exist
+                //grabb usesr wallet
+                var walletAcct1 = _systemuser.getMyWallet(Id);
+                if (walletAcct1 == null)
+                {
+                    //bounce back if they dont have a wallet yet 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "You dont have a Wallet Account, Pls create one"
+                    });
+                }
+
+                //grabb Receiver wallet
+                var walletAcct2 = _systemuser.getMyWalletByUsername(model.WalletName);
+                if (walletAcct2 == null)
+                {
+                    //bounce back if they receiver have a wallet yet 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "The Receiever doesn't have a Wallet Account, Pls check with the Receiver"
+                    });
+                }
+
+                //grab sender details and receiver details
+                var currentBalance = walletAcct1.Balance;
+                if(currentBalance < model.Amount)
+                {
+                    //process transaction for sender 
+                    decimal bal = 0.0000m;   // explicit cast to decimal
+                    bal = model.Amount; //amount user intend to send 
+
+                    var balancebefore_Sender = walletAcct1.Balance;
+                    var newBalance = (walletAcct1.Balance) - (bal);
+                    walletAcct1.Balance = newBalance;
+
+                    //Create TrasanctionHist for Sender
+                    //create Transaction history 
+                    var newhistory_Sender = new TransactionHistory
+                    {
+                        Purpose = "Transfer",
+                        reference = refff,
+                        Txn_type = "Debit",
+                        walletID = walletAcct1.ID,
+                        balance_before = balancebefore_Sender,
+                        balance_after = newBalance,
+                        created_at = DateTime.Now,
+                        updated_at = DateTime.Now
+                    };
+
+
+                    //process transaction for Receiever 
+                    walletAcct2.Balance = bal;
+                    var balanceAfter = (walletAcct2.Balance) + (bal);
+
+                    //Create TrasanctionHist for Receiver
+                    var newhistory_Receiever = new TransactionHistory
+                    {
+                        Purpose = "Deposit",
+                        reference = refff,
+                        Txn_type = "Credit",
+                        walletID = walletAcct2.ID,
+                        balance_before = walletAcct2.Balance,
+                        balance_after = balanceAfter,
+                        created_at = DateTime.Now,
+                        updated_at = DateTime.Now
+                    };
+
+                    //call save changes
+                    await _systemuser.SaveChanges();
+
+                    //retun response body --this way
+                    return Ok(new
+                    {
+                        success = true,
+                        type = "Debit",
+                        message = "Transfer Succesful",
+                        balance_before = balancebefore_Sender,
+                        balance_after = newBalance,
+                        Beneficiary = "Self",
+                        narration = model.Narration
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = false,
+                    message = "Insufficient balance"
+                });
+
+            }
+            catch(Exception ex)
+            {
+                return Ok(new { succes = false, messsage = ex.Message });
+            }
+          
         }
     }
 }
