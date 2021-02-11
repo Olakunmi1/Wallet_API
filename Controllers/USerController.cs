@@ -306,6 +306,7 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                //To:Do -- move credit and debit into a fucntion 
                 var refff = Guid.NewGuid().ToString(); //ref for this transaction
 
                 //check if user exist 
@@ -320,7 +321,7 @@ namespace Wallet_API.Controllers
                     });
                 }
                 //check if wallet exist
-                //grabb usesr wallet
+                //grabb Sender wallet
                 var walletAcct1 = _systemuser.getMyWallet(Id);
                 if (walletAcct1 == null)
                 {
@@ -353,7 +354,7 @@ namespace Wallet_API.Controllers
                     bal = model.Amount; //amount user intend to send 
 
                     var balancebefore_Sender = walletAcct1.Balance;
-                    var newBalance = (walletAcct1.Balance) - (bal);
+                    var newBalance = (balancebefore_Sender) - (bal);
                     walletAcct1.Balance = newBalance;
 
                     //Create TrasanctionHist for Sender
@@ -370,10 +371,20 @@ namespace Wallet_API.Controllers
                         updated_at = DateTime.Now
                     };
 
+                    try
+                    {
+
+                        var newHist_Sender = _systemuser.CreateTransactHist(newhistory_Sender);
+                    }
+                    catch(Exception ex)
+                    {
+                        return Ok(new { success = false, message = "Something went wrong pls try again later" });
+                    }
 
                     //process transaction for Receiever 
-                    walletAcct2.Balance = bal;
-                    var balanceAfter = (walletAcct2.Balance) + (bal);
+                    var balancebefore_Receiever = walletAcct2.Balance;
+                    var balanceAfter = (balancebefore_Receiever) + (bal);
+                    walletAcct2.Balance = balanceAfter;
 
                     //Create TrasanctionHist for Receiver
                     var newhistory_Receiever = new TransactionHistory
@@ -382,11 +393,20 @@ namespace Wallet_API.Controllers
                         reference = refff,
                         Txn_type = "Credit",
                         walletID = walletAcct2.ID,
-                        balance_before = walletAcct2.Balance,
+                        balance_before = balancebefore_Receiever,
                         balance_after = balanceAfter,
                         created_at = DateTime.Now,
                         updated_at = DateTime.Now
                     };
+
+                    try
+                    {
+                        var newHist_Receiever = _systemuser.CreateTransactHist(newhistory_Receiever);
+                    }
+                    catch (Exception ex)
+                    {
+                        return Ok(new { success = false, message = "Something went wrong pls try again later" });
+                    }
 
                     //call save changes
                     await _systemuser.SaveChanges();
