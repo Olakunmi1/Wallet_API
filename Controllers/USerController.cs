@@ -341,95 +341,97 @@ namespace Wallet_API.Controllers
                     return NotFound(new
                     {
                         succes = false,
-                        message = "The Receiever doesn't have a Wallet Account, Pls check with the Receiver"
+                        message = "Wallet Account not found. The Receiever doesn't have a Wallet, Pls check with the Receiver"
                     });
                 }
 
                 //grab sender details and receiver details
                 var currentBalance = walletAcct1.Balance;
-                if(currentBalance < model.Amount)
+                var amountToSend = model.Amount;
+                if(amountToSend  > currentBalance)
                 {
-                    //process transaction for sender 
-                    decimal bal = 0.0000m;   // explicit cast to decimal
-                    bal = model.Amount; //amount user intend to send 
-
-                    var balancebefore_Sender = walletAcct1.Balance;
-                    var newBalance = (balancebefore_Sender) - (bal);
-                    walletAcct1.Balance = newBalance;
-
-                    //Create TrasanctionHist for Sender
-                    //create Transaction history 
-                    var newhistory_Sender = new TransactionHistory
-                    {
-                        Purpose = "Transfer",
-                        reference = refff,
-                        Txn_type = "Debit",
-                        walletID = walletAcct1.ID,
-                        balance_before = balancebefore_Sender,
-                        balance_after = newBalance,
-                        created_at = DateTime.Now,
-                        updated_at = DateTime.Now
-                    };
-
-                    try
-                    {
-
-                        var newHist_Sender = _systemuser.CreateTransactHist(newhistory_Sender);
-                    }
-                    catch(Exception ex)
-                    {
-                        return Ok(new { success = false, message = "Something went wrong pls try again later" });
-                    }
-
-                    //process transaction for Receiever 
-                    var balancebefore_Receiever = walletAcct2.Balance;
-                    var balanceAfter = (balancebefore_Receiever) + (bal);
-                    walletAcct2.Balance = balanceAfter;
-
-                    //Create TrasanctionHist for Receiver
-                    var newhistory_Receiever = new TransactionHistory
-                    {
-                        Purpose = "Deposit",
-                        reference = refff,
-                        Txn_type = "Credit",
-                        walletID = walletAcct2.ID,
-                        balance_before = balancebefore_Receiever,
-                        balance_after = balanceAfter,
-                        created_at = DateTime.Now,
-                        updated_at = DateTime.Now
-                    };
-
-                    try
-                    {
-                        var newHist_Receiever = _systemuser.CreateTransactHist(newhistory_Receiever);
-                    }
-                    catch (Exception ex)
-                    {
-                        return Ok(new { success = false, message = "Something went wrong pls try again later" });
-                    }
-
-                    //call save changes
-                    await _systemuser.SaveChanges();
-
-                    //retun response body --this way
                     return Ok(new
                     {
-                        success = true,
-                        type = "Debit",
-                        message = "Transfer Succesful",
-                        balance_before = balancebefore_Sender,
-                        balance_after = newBalance,
-                        Beneficiary = "Self",
-                        narration = model.Narration
+                        success = false,
+                        message = "Insufficient balance"
                     });
+
+                }
+                //process transaction for sender 
+                decimal bal = 0.0000m;   // explicit cast to decimal
+                bal = model.Amount; //amount user intend to send 
+
+                var balancebefore_Sender = walletAcct1.Balance;
+                var newBalance = (balancebefore_Sender) - (bal);
+                walletAcct1.Balance = newBalance;
+
+                //Create TrasanctionHist for Sender
+                //create Transaction history 
+                var newhistory_Sender = new TransactionHistory
+                {
+                    Purpose = "Transfer",
+                    reference = refff,
+                    Txn_type = "Debit",
+                    walletID = walletAcct1.ID,
+                    balance_before = balancebefore_Sender,
+                    balance_after = newBalance,
+                    created_at = DateTime.Now,
+                    updated_at = DateTime.Now
+                };
+
+                try
+                {
+
+                    var newHist_Sender = _systemuser.CreateTransactHist(newhistory_Sender);
+                }
+                catch (Exception ex)
+                {
+                    return Ok(new { success = false, message = "Something went wrong pls try again later" });
                 }
 
+                //process transaction for Receiever 
+                var balancebefore_Receiever = walletAcct2.Balance;
+                var balanceAfter = (balancebefore_Receiever) + (bal);
+                walletAcct2.Balance = balanceAfter;
+
+                //Create TrasanctionHist for Receiver
+                var newhistory_Receiever = new TransactionHistory
+                {
+                    Purpose = "Deposit",
+                    reference = refff,
+                    Txn_type = "Credit",
+                    walletID = walletAcct2.ID,
+                    balance_before = balancebefore_Receiever,
+                    balance_after = balanceAfter,
+                    created_at = DateTime.Now,
+                    updated_at = DateTime.Now
+                };
+
+                try
+                {
+                    var newHist_Receiever = _systemuser.CreateTransactHist(newhistory_Receiever);
+                }
+                catch (Exception ex)
+                {
+                    return Ok(new { success = false, message = "Something went wrong pls try again later" });
+                }
+
+                //call save changes
+                await _systemuser.SaveChanges();
+
+                //retun response body --this way
                 return Ok(new
                 {
-                    success = false,
-                    message = "Insufficient balance"
+                    success = true,
+                    type = "Debit",
+                    message = "Transfer Succesful",
+                    balance_before = balancebefore_Sender,
+                    balance_after = newBalance,
+                    Beneficiary = "Self",
+                    narration = model.Narration
                 });
 
+               
             }
             catch(Exception ex)
             {
