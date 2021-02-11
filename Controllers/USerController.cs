@@ -203,24 +203,109 @@ namespace Wallet_API.Controllers
         [HttpPost("FundMyWallet/{Id}")]
         public async Task<IActionResult> Fundwallet(int Id, FundWalletModel model)
         {
-            //check if user exist within the system 
-            //bounce back if they dont 
-            //grabb usesr wallet
-            //bounce back if they dont have a wallet yet 
-            // make changes to wallet
-            //create Trasaction history 
-            //call save changes 
-            //return transaction summary to user --this way 
-            //
-            return Ok(new
+            try
             {
-                success = true,
-                type = "Credit",
-                message =  "You have Sucesfully fund your wallet",
-                Amount =  100000,
-                Beneficiary = "Self",
-                narration = model.Narration
-            });
+                //To:Do -- move this into a function for robustness
+
+                //check if user exist within the system 
+                var userss = _systemuser.getSingleSystemUser(Id);
+                if (userss == null)
+                {
+                    //bounce back if they dont exist 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+
+                //grabb usesr wallet
+                var walletAcct = _systemuser.getMyWallet(Id);
+                if (walletAcct == null)
+                {
+                    //bounce back if they dont have a wallet yet 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "You dont have a Wallet Account, Pls create one"
+                    });
+                }
+
+                var refff = Guid.NewGuid().ToString(); //ref for this transaction
+                decimal bal = 0.0000m;   // explicit cast to decimal
+
+                bal = model.Amount; //new amount to fund with 
+                var balanceBefore = walletAcct.Balance;
+                var newbalance = (balanceBefore + bal);
+
+                // make changes to wallet
+                walletAcct.Balance = newbalance;
+
+                //create Transaction history 
+                var newhistory = new TransactionHistory
+                {
+                    Purpose = "Deposit",
+                    reference = refff,
+                    Txn_type = "Credit",
+                    walletID = walletAcct.ID,
+                    balance_before = balanceBefore,
+                    balance_after = newbalance,
+                    created_at = DateTime.Now,
+                    updated_at = DateTime.Now
+                };
+
+                try
+                {
+                    var newHist = _systemuser.CreateTransactHist(newhistory);
+                    if (newHist == null)
+                    {
+
+                        return Ok(new
+                        {
+                            succes = false,
+                            message = "Somethhing went wrong pls try again later"
+                        });
+                    }
+
+                    //call save changes 
+                    await _systemuser.SaveChanges();
+
+
+                }
+                catch (Exception ex)
+                {
+                    return Ok(new
+                    {
+                        succes = false,
+                        message = ex.Message
+                    });
+                }
+
+                //return transaction summary to user --this way 
+                return Ok(new
+                {
+                    success = true,
+                    type = "Credit",
+                    message = "You have Sucesfully fund your wallet",
+                    balance_before = balanceBefore,
+                    balance_after = newbalance,
+                    Beneficiary = "Self",
+                    narration = model.Narration
+                });
+            }
+
+            catch (Exception ex)
+            {
+                return Ok(new { succes = false, messsage = ex.Message });
+            }
+        }
+
+        //systemt user id needed
+        [HttpPost("TransferFund/{Id}")]
+        public async Task<IActionResult> TransferFund(int Id, FundWalletModel model)
+        {
+
+            return null;
         }
     }
 }
