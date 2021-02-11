@@ -25,12 +25,14 @@ namespace Wallet_API.Controllers
         private readonly ISystemuserRepo _systemuser;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _config;
+        private readonly SignInManager<ApplicationUser> _signInManager;
 
-        public AccountController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager, IConfiguration config)
+        public AccountController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager, IConfiguration config, SignInManager<ApplicationUser> signInManager)
         {
             _systemuser = systemuser;
             _userManager = userManager;
             _config = config;
+            _signInManager = signInManager;
         }
 
         //Register with Identity 
@@ -151,7 +153,6 @@ namespace Wallet_API.Controllers
                     //var userRole = rolename.FirstOrDefault(); //
 
                     var tokenHandler = new JwtSecurityTokenHandler();
-                    //var key = Encoding.ASCII.GetBytes(_appSettings.Value.Secret);
                     var key = Encoding.UTF8.GetBytes(_config["AppSettings:Secret"]);
                     var tokenDescriptor = new SecurityTokenDescriptor
                     {
@@ -196,13 +197,6 @@ namespace Wallet_API.Controllers
                     message = ex.Message
                 });
             }
-        }
-
-
-        [HttpGet("CreateWallet")] //change to post later 
-        public IActionResult CreateWallet()
-        {
-            return Ok(new { message = "just testing this out" });
         }
 
     }
