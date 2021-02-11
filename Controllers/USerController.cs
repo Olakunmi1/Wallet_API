@@ -11,6 +11,7 @@ using Wallet_API.WriteDTO;
 
 namespace Wallet_API.Controllers
 {
+    //To:Do Convert all DB interactions to asynchronus operations Task<T>
 
     [ApiController]
     [Route("api/User")]
@@ -47,7 +48,7 @@ namespace Wallet_API.Controllers
                 return BadRequest(new { message = strbld2 });
             }
             //check if system user exist 
-            var userss = _systemuser.getSingleSystemUser(userId);
+            var userss = await _systemuser.getSingleSystemUser(userId);
             if (userss == null)
             {
                 return NotFound(new
