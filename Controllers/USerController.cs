@@ -197,5 +197,30 @@ namespace Wallet_API.Controllers
                 return Ok(new { success = false, message = ex.Message });
             }
         }
+
+
+        //systemt user id needed
+        [HttpPost("FundMyWallet/{Id}")]
+        public async Task<IActionResult> Fundwallet(int Id, FundWalletModel model)
+        {
+            //check if user exist within the system 
+            //bounce back if they dont 
+            //grabb usesr wallet
+            //bounce back if they dont have a wallet yet 
+            // make changes to wallet
+            //create Trasaction history 
+            //call save changes 
+            //return transaction summary to user --this way 
+            //
+            return Ok(new
+            {
+                success = true,
+                type = "Credit",
+                message =  "You have Sucesfully fund your wallet",
+                Amount =  100000,
+                Beneficiary = "Self",
+                narration = model.Narration
+            });
+        }
     }
 }
