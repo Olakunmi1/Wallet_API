@@ -427,11 +427,10 @@ namespace Wallet_API.Controllers
                     message = "Transfer Succesful",
                     balance_before = balancebefore_Sender,
                     balance_after = newBalance,
-                    Beneficiary = "Self",
+                    Beneficiary = walletAcct2.Name,
                     narration = model.Narration
                 });
 
-               
             }
             catch(Exception ex)
             {
