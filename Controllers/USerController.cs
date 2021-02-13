@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Wallet.Data.Entities;
 using Wallet.Data.Interface;
+using Wallet_API.ReadDTO;
 using Wallet_API.WriteDTO;
 
 namespace Wallet_API.Controllers
@@ -48,7 +49,7 @@ namespace Wallet_API.Controllers
                 return BadRequest(new { message = strbld2 });
             }
             //check if system user exist 
-            var userss = await _systemuser.getSingleSystemUser(userId);
+            var userss = _systemuser.getSingleSystemUser(userId);
             if (userss == null)
             {
                 return NotFound(new
@@ -75,7 +76,7 @@ namespace Wallet_API.Controllers
                 var newWallet = new WalletAccount
                 {
                     Name = model.Name,
-                    userID = userss.ID,
+                    user = userss,
                     Balance = bal,
                     Created_at = DateTime.Now
                 };
@@ -248,7 +249,7 @@ namespace Wallet_API.Controllers
                     Purpose = "Deposit",
                     reference = refff,
                     Txn_type = "Credit",
-                    walletID = walletAcct.ID,
+                    wallet = walletAcct,
                     balance_before = balanceBefore,
                     balance_after = newbalance,
                     created_at = DateTime.Now,
@@ -373,7 +374,7 @@ namespace Wallet_API.Controllers
                     Purpose = "Transfer",
                     reference = refff,
                     Txn_type = "Debit",
-                    walletID = walletAcct1.ID,
+                    wallet = walletAcct1,
                     balance_before = balancebefore_Sender,
                     balance_after = newBalance,
                     created_at = DateTime.Now,
@@ -401,7 +402,7 @@ namespace Wallet_API.Controllers
                     Purpose = "Deposit",
                     reference = refff,
                     Txn_type = "Credit",
-                    walletID = walletAcct2.ID,
+                    wallet = walletAcct2,
                     balance_before = balancebefore_Receiever,
                     balance_after = balanceAfter,
                     created_at = DateTime.Now,
@@ -438,6 +439,70 @@ namespace Wallet_API.Controllers
                 return Ok(new { succes = false, messsage = ex.Message });
             }
           
+        }
+
+        //systemt user id needed
+        [HttpGet("getMyTransactionhistory/{Id}")]
+        public IActionResult getMyTransactionHistory(int Id)
+        {
+            try
+            { 
+                //check if system user exist 
+                var userss = _systemuser.getSingleSystemUser(Id);
+                if (userss == null)
+                {
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+                var walletAcct = _systemuser.getMyWallet(Id);
+                if (walletAcct == null)
+                {
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "You dont have a Wallet Account yet, pls create one"
+                    });
+                }
+
+                try
+                {
+                    var getTransactHistory = _systemuser.GetTransactionHistories(walletAcct.ID);
+
+                    var getTransactHistory_ReadDto = getTransactHistory
+                        .Select(x => new TransactHistDTO
+                        {
+                            Txn_type = x.Txn_type,
+                            balance_before = x.balance_before,
+                            balance_after = x.balance_after,
+                            Purpose = x.Purpose,
+                            created_at = x.created_at,
+                            updated_at = x.updated_at
+                        });
+
+                    return Ok(new
+                    {
+                        success = true,
+                        MyTransactionHistories = getTransactHistory_ReadDto
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return Ok(new { succes = false, message = ex.Message });
+                } 
+            }
+
+            catch (Exception ex)
+            {
+                return Ok(new
+                {
+                    succes = false,
+                    message = ex.Message
+                });
+            }
+
         }
     }
 }
