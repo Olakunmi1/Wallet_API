@@ -86,12 +86,43 @@ namespace Wallet_API.Controllers
                     var newUserr = _systemuser.Create(NewUser);
                     if(newUserr != null)
                     {
-                       await _systemuser.SaveChanges();  //save changes
+
+                        await _systemuser.SaveChanges();  //save changes
+
+                        //get Newly created user by username
+                        var newuser = _systemuser.getSingleSystemUser_Byusername(newUserr.Username);
+                        if(newuser == null)
+                        {
+                            return Ok(new
+                            {
+                                success = true,
+                                message = "Registration was Succesful,But couldn't create Your wallet, Log in and Create one",
+                                Username = newUserr.Username,
+                                Email = user.Email
+                            });
+                        }
+
+                        decimal bal = 0.0000m; // explicit cast to decimal with the prefix "m", float is "f"
+                        //create wallet 
+                        var walletAcounnt = new WalletAccount
+                        {
+                             Name = model.username,
+                             user = newuser,
+                             Balance = bal,
+                             Created_at = DateTime.Now
+                        };
+                        //Create wallet for user 
+                        _systemuser.CreateWallet(walletAcounnt);
+                        await _systemuser.SaveChanges();
+
+                        //get newly created wallet 
+                        var Newwallet = _systemuser.getMyWalletByUsername(walletAcounnt.Name);
+
                         return Ok(new
                         {
                             success = true,
-                            message = "Registration was Succesful, You will be required to log in with your Email & Password",
-                            Username = newUserr.Username,
+                            message = "Registration was Succesful, You can Log in to fund your wallet",
+                            WalletName = Newwallet,
                             Email = user.Email
 
                         });

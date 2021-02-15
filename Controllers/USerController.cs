@@ -31,7 +31,6 @@ namespace Wallet_API.Controllers
         {
             try
             {
-
                 var usernamee = User.Identity.Name;
                 StringBuilder strbld2 = new StringBuilder();
                 var err2 = new List<string>();
@@ -232,7 +231,7 @@ namespace Wallet_API.Controllers
                 var newbalance = (balanceBefore + bal);
                 string purpose = "Deposit";
                 //--call Credit function 
-                var creditResponse = await Credit(walletAcct, balanceBefore, newbalance, refff, purpose);
+                var creditResponse = await Credit(walletAcct, balanceBefore, newbalance, refff, purpose, bal);
 
                 if(!creditResponse == true)
                 {
@@ -329,7 +328,7 @@ namespace Wallet_API.Controllers
 
                 //-- Call Debit function
               
-                var DebitResponse = await Debit(walletAcct1, balancebefore_Sender, newBalance, refff, purpose);
+                var DebitResponse = await Debit(walletAcct1, balancebefore_Sender, newBalance, refff, purpose, amountToSend);
 
                 if (!DebitResponse == true)
                 {
@@ -342,7 +341,7 @@ namespace Wallet_API.Controllers
                 string purposee ="Deposit";
 
                 // call Credit function 
-                var CreditResponse = await Credit(walletAcct2, balancebefore_Receiever, balanceAfter, refff, purposee);
+                var CreditResponse = await Credit(walletAcct2, balancebefore_Receiever, balanceAfter, refff, purposee, amountToSend);
 
                 if (!CreditResponse == true)
                 {
@@ -492,7 +491,7 @@ namespace Wallet_API.Controllers
                 string purpose = "Withdraw";
 
                 //-- Call Debit function
-                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff, purpose);
+                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff, purpose, amountToWithdraw);
 
                 if (!DebitResponse == true)
                 {
@@ -607,7 +606,7 @@ namespace Wallet_API.Controllers
                         var newbal = (currentBalance + amountToCredit);
                         string purposee = "Reversal";
                         //call Credit function
-                        var creditResponse = await Credit(walletAcct, currentBalance, newbal, reff1, purposee);
+                        var creditResponse = await Credit(walletAcct, currentBalance, newbal, reff1, purposee, amountToCredit);
                         if (!creditResponse == true)
                         {
                             return Ok(new { success = false, message = "Something went wrong, pls try again later" });
@@ -636,7 +635,7 @@ namespace Wallet_API.Controllers
                     var newbal2 = (currentBalance2 - amountTodebit); 
                     string purpose2 = "Reversal"; 
                     //call Debit function
-                    var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2); 
+                    var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2, amountTodebit); 
                     if (!debitResponse == true)
                     {
                         return Ok(new { success = false, message = "Something went wrong, pls try again later" });
@@ -724,7 +723,7 @@ namespace Wallet_API.Controllers
         }
 
         //credit wallet 
-        private async Task<bool> Credit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose)
+        private async Task<bool> Credit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose, decimal Amountt)
         {
             // make changes to wallet
             walletAccount.Balance = balAfter;
@@ -739,7 +738,8 @@ namespace Wallet_API.Controllers
                 balance_before = balbefore,
                 balance_after = balAfter,
                 created_at = DateTime.Now,
-                updated_at = DateTime.Now
+                updated_at = DateTime.Now,
+                Amount = Amountt
             };
 
             try
@@ -763,7 +763,7 @@ namespace Wallet_API.Controllers
         }
 
         //Debit wallet 
-        private async Task<bool> Debit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose)
+        private async Task<bool> Debit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose, decimal amountt)
         {
             // make changes to wallet
             walletAccount.Balance = balAfter;
@@ -778,7 +778,8 @@ namespace Wallet_API.Controllers
                 balance_before = balbefore,
                 balance_after = balAfter,
                 created_at = DateTime.Now,
-                updated_at = DateTime.Now
+                updated_at = DateTime.Now,
+                Amount = amountt
             };
 
             try
