@@ -230,9 +230,9 @@ namespace Wallet_API.Controllers
                 bal = model.Amount; //new amount to fund with 
                 var balanceBefore = walletAcct.Balance;
                 var newbalance = (balanceBefore + bal);
-
+                string purpose = "Deposit";
                 //--call Credit function 
-                var creditResponse = await Credit(walletAcct, balanceBefore, newbalance, refff);
+                var creditResponse = await Credit(walletAcct, balanceBefore, newbalance, refff, purpose);
 
                 if(!creditResponse == true)
                 {
@@ -325,10 +325,11 @@ namespace Wallet_API.Controllers
 
                 var balancebefore_Sender = currentBalance;
                 var newBalance = (balancebefore_Sender) - (bal);
+                string purpose = "Transfer";
 
                 //-- Call Debit function
               
-                var DebitResponse = await Debit(walletAcct1, balancebefore_Sender, newBalance, refff);
+                var DebitResponse = await Debit(walletAcct1, balancebefore_Sender, newBalance, refff, purpose);
 
                 if (!DebitResponse == true)
                 {
@@ -338,9 +339,10 @@ namespace Wallet_API.Controllers
                 //process transaction for Receiever 
                 var balancebefore_Receiever = walletAcct2.Balance;
                 var balanceAfter = (balancebefore_Receiever) + (bal);
+                string purposee ="Deposit";
 
                 // call Credit function 
-                var CreditResponse = await Credit(walletAcct2, balancebefore_Receiever, balanceAfter, refff);
+                var CreditResponse = await Credit(walletAcct2, balancebefore_Receiever, balanceAfter, refff, purposee);
 
                 if (!CreditResponse == true)
                 {
@@ -487,9 +489,10 @@ namespace Wallet_API.Controllers
 
                 var balancebefore = currentBalance; 
                 var newBalance = (balancebefore) - (bal);
+                string purpose = "Withdraw";
 
                 //-- Call Debit function
-                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff);
+                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff, purpose);
 
                 if (!DebitResponse == true)
                 {
@@ -525,8 +528,22 @@ namespace Wallet_API.Controllers
         {
             try
             {
-                var refff = Guid.NewGuid().ToString(); //ref for this transaction
+                StringBuilder strbld2 = new StringBuilder();
+                var err2 = new List<string>();
 
+                if (!ModelState.IsValid)
+                {
+                    foreach (var state in ModelState)
+                    {
+                        foreach (var error in state.Value.Errors)
+                        {
+                            err2.Add(error.ErrorMessage);
+                            err2.ForEach(err => { strbld2.AppendFormat("•{0}", error.ErrorMessage); });
+                        }
+                    }
+
+                    return BadRequest(new { message = strbld2 });
+                }
                 //check if user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
@@ -539,7 +556,7 @@ namespace Wallet_API.Controllers
                     });
                 }
                 //check if wallet exist
-                //grabb Sender wallet
+                //grabb wallet
                 var walletAcct = _systemuser.getMyWallet(Id);
                 if (walletAcct == null)
                 {
@@ -551,46 +568,90 @@ namespace Wallet_API.Controllers
                     });
                 }
 
-                //grab sender balance details
-                var currentBalance = walletAcct.Balance;
-                var amountToWithdraw = model.Amount;
-                if (amountToWithdraw > currentBalance)
+              
+                //get transactions by ref 
+                var getTransactHistory = _systemuser.GetTransactionHistories_ByRef(model.Reference);
+                if(getTransactHistory == null)
                 {
+                    //bounce back if no history 
                     return Ok(new
                     {
                         success = false,
-                        message = "Insufficient balance"
+                        message = "Invalid reference, No history"
                     });
-
                 }
 
-                //process transaction for USer 
-                decimal bal = 0.0000m;   // explicit cast to decimal
-                bal = model.Amount; //amount user intend to withdraw 
 
-                var balancebefore = currentBalance;
-                var newBalance = (balancebefore) - (bal);
-
-                //-- Call Debit function
-                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff);
-
-                if (!DebitResponse == true)
+                var getTransactHistory_ReadDto = getTransactHistory
+                    .Select(x => new TransactHistDTO
+                    {
+                        Txn_type = x.Txn_type,
+                        balance_before = x.balance_before,
+                        balance_after = x.balance_after,
+                        Purpose = x.Purpose,
+                        created_at = x.created_at,
+                        updated_at = x.updated_at,
+                        WalletId = x.wallet.ID,
+                        Amount = x.Amount
+                    });
+                //create a foreach loop and check transaction type, 
+                foreach(var history in getTransactHistory_ReadDto)
                 {
-                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                    //check transactionType
+                    if(history.Txn_type == "Debit")
+                    {
+                        var reff1 = Guid.NewGuid().ToString(); //ref for this transaction
+                        //grab balance details
+                        var currentBalance = walletAcct.Balance;
+                        var amountToCredit = history.Amount; 
+                        var newbal = (currentBalance + amountToCredit);
+                        string purposee = "Reversal";
+                        //call Credit function
+                        var creditResponse = await Credit(walletAcct, currentBalance, newbal, reff1, purposee);
+                        if (!creditResponse == true)
+                        {
+                            return Ok(new { success = false, message = "Something went wrong, pls try again later" });
+                        }
+                    }
+
+                    //call debit function 
+                    var reff2 = Guid.NewGuid().ToString(); //ref for this transaction
+                    var walletId_Receipeint = history.WalletId;
+                    //check if wallet exist
+                    //grabb wallet
+                    var walletAcct2 = _systemuser.getMyWallet(walletId_Receipeint);
+                    if (walletAcct2 == null)
+                    {
+                        //bounce back if they dont have a wallet yet 
+                        return NotFound(new
+                        {
+                            succes = false,
+                            message = "Wallet Account doesnt exist"
+                        });
+                    }
+
+                    //grab balance details
+                    var currentBalance2 = walletAcct2.Balance;
+                    var amountTodebit =   history.Amount;
+                    var newbal2 = (currentBalance2 - amountTodebit); 
+                    string purpose2 = "Reversal"; 
+                    //call Debit function
+                    var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2); 
+                    if (!debitResponse == true)
+                    {
+                        return Ok(new { success = false, message = "Something went wrong, pls try again later" });
+                    }
+
                 }
-
-                //call save changes
+                //now savechanges
                 await _systemuser.SaveChanges();
-
-                //retun response body --this way
+ 
+                //return response body
                 return Ok(new
                 {
                     success = true,
-                    type = "Debit",
-                    message = "Withdraw Succesful",
-                    balance_before = balancebefore,
-                    balance_after = newBalance,
-                    Beneficiary = "Self",
+                    type = "Reversal",
+                    message = "Reversal Succesful"
                 });
 
             }
@@ -663,7 +724,7 @@ namespace Wallet_API.Controllers
         }
 
         //credit wallet 
-        private async Task<bool> Credit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff)
+        private async Task<bool> Credit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose)
         {
             // make changes to wallet
             walletAccount.Balance = balAfter;
@@ -671,7 +732,7 @@ namespace Wallet_API.Controllers
             //create Transaction history 
             var newhistory = new TransactionHistory
             {
-                Purpose = "Deposit",
+                Purpose = purpose,
                 reference = refff,
                 Txn_type = "Credit",
                 wallet = walletAccount,
@@ -691,20 +752,18 @@ namespace Wallet_API.Controllers
 
                 ////call save changes 
                 //await _systemuser.SaveChanges();
-
-
             }
             catch (Exception ex)
             {
                 return false;
             }
 
-            //return transaction summary to user --this way 
+            //
             return true;
         }
 
         //Debit wallet 
-        private async Task<bool> Debit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff)
+        private async Task<bool> Debit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff, string purpose)
         {
             // make changes to wallet
             walletAccount.Balance = balAfter;
@@ -712,7 +771,7 @@ namespace Wallet_API.Controllers
             //create Transaction history 
             var newhistory = new TransactionHistory
             {
-                Purpose = "Deposit",
+                Purpose = purpose,
                 reference = refff,
                 Txn_type = "Credit",
                 wallet = walletAccount,
