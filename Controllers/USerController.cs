@@ -12,8 +12,6 @@ using Wallet_API.WriteDTO;
 
 namespace Wallet_API.Controllers
 {
-    //To:Do Convert all DB interactions to asynchronus operations Task<T>
-
     [ApiController]
     [Route("api/User")]
     public class USerController : ControllerBase
@@ -31,85 +29,80 @@ namespace Wallet_API.Controllers
         [HttpPost("CreateWallet/{userId}")]
         public async Task<IActionResult> CreateWallet(int userId, [FromBody] WalletAccountDTOW model)
         {
-
-            var usernamee = User.Identity.Name;
-            StringBuilder strbld2 = new StringBuilder();
-            var err2 = new List<string>();
-            if (!ModelState.IsValid)
-            {
-                foreach (var state in ModelState)
-                {
-                    foreach (var error in state.Value.Errors)
-                    {
-                        err2.Add(error.ErrorMessage);
-                        err2.ForEach(err => { strbld2.AppendFormat("•{0}", error.ErrorMessage); });
-                    }
-                }
-
-                return BadRequest(new { message = strbld2 });
-            }
-            //check if system user exist 
-            var userss = _systemuser.getSingleSystemUser(userId);
-            if (userss == null)
-            {
-                return NotFound(new
-                {
-                    succes = false,
-                    message = "User Not Found"
-                });
-            }
-
-            //To:do -- Check if this user has exisitng wallet  ---
-            var walletAcct = _systemuser.getMyWallet(userId);
-            if (walletAcct != null)
-            {
-                return Ok(new
-                {
-                    succes = false,
-                    message = "You already have a Wallet Account"
-                });
-            }
-
             try
             {
-                decimal bal = 0.0000m; // explicit cast to decimal with the prefix "m", float is "f"
-                var newWallet = new WalletAccount
-                {
-                    Name = model.Name,
-                    user = userss,
-                    Balance = bal,
-                    Created_at = DateTime.Now
-                };
-                //create Wallet
-                var Wallet = _systemuser.CreateWallet(newWallet);
-                await _systemuser.SaveChanges();
 
-                if (Wallet != null)
+                var usernamee = User.Identity.Name;
+                StringBuilder strbld2 = new StringBuilder();
+                var err2 = new List<string>();
+                if (!ModelState.IsValid)
+                {
+                    foreach (var state in ModelState)
+                    {
+                        foreach (var error in state.Value.Errors)
+                        {
+                            err2.Add(error.ErrorMessage);
+                            err2.ForEach(err => { strbld2.AppendFormat("•{0}", error.ErrorMessage); });
+                        }
+                    }
+
+                    return BadRequest(new { message = strbld2 });
+                }
+
+                //check if system user exist 
+                var userss = _systemuser.getSingleSystemUser(userId);
+                if (userss == null)
+                {
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+
+                //To:do -- Check if this user has exisitng wallet  ---
+                var walletAcct = _systemuser.getMyWallet(userId);
+                if (walletAcct != null)
                 {
                     return Ok(new
                     {
-                        success = true,
-                        message = "Wallet created Succesfully",
-                        WalletName = Wallet.Name,
-                        Current_Balance = bal
+                        succes = false,
+                        message = "You already have a Wallet Account"
+                    });
+                }
+
+                decimal bal = 0.0000m; // explicit cast to decimal with the prefix "m", float is "f"
+
+                //create wallet function
+                var walletResponse = CreateAWallet(userId, model.Name);
+
+                if (await walletResponse == false)
+                {
+                    return Ok(new
+                    {
+                        success = false,
+                        message = "Something went wrong we could not create your wallet Pls try again"
                     });
                 }
 
                 return Ok(new
                 {
-                    success = false,
-                    message = "Something went wrong we could not create your wallet Pls try again"
+                    success = true,
+                    message = "Wallet Created Succesfully",
+                    WalletName = model.Name,
+                    Current_Balance = bal
                 });
-
             }
-            catch (Exception ex)
+
+            catch(Exception ex)
             {
                 return Ok(new
                 {
-                    succes = false,
-                    message = "Something went wrong we couldnot create your wallet Pls try again"
+                    success = false,
+                    message = "Something went wrong we could not create your wallet Pls try again"
                 });
             }
+           
         }
 
         //systemt user id needed
@@ -159,7 +152,7 @@ namespace Wallet_API.Controllers
         }
 
         [HttpPut("UpdateWalletInfo/{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody]UpdateWalletModel model)
+        public async Task<IActionResult> UpdatewalletInfo(int id, [FromBody]UpdateWalletModel model)
         {
             //check if system user exist 
             var userss = _systemuser.getSingleSystemUser(id);
@@ -188,7 +181,7 @@ namespace Wallet_API.Controllers
             try
             {
                 // update user 
-               // _systemuser.Update(updatedWalet);
+                // _systemuser.Update(updatedWalet);
                 await _systemuser.SaveChanges();
 
                 return Ok();
@@ -207,8 +200,6 @@ namespace Wallet_API.Controllers
         {
             try
             {
-                //To:Do -- move this into a function for robustness
-
                 //check if user exist within the system 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
@@ -240,53 +231,21 @@ namespace Wallet_API.Controllers
                 var balanceBefore = walletAcct.Balance;
                 var newbalance = (balanceBefore + bal);
 
-                // make changes to wallet
-                walletAcct.Balance = newbalance;
+                //--call Credit function 
+                var creditResponse = await Credit(walletAcct, balanceBefore, newbalance, refff);
 
-                //create Transaction history 
-                var newhistory = new TransactionHistory
+                if(!creditResponse == true)
                 {
-                    Purpose = "Deposit",
-                    reference = refff,
-                    Txn_type = "Credit",
-                    wallet = walletAcct,
-                    balance_before = balanceBefore,
-                    balance_after = newbalance,
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now
-                };
-
-                try
-                {
-                    var newHist = _systemuser.CreateTransactHist(newhistory);
-                    if (newHist == null)
-                    {
-
-                        return Ok(new
-                        {
-                            succes = false,
-                            message = "Somethhing went wrong pls try again later"
-                        });
-                    }
-
-                    //call save changes 
-                    await _systemuser.SaveChanges();
-
-
+                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
                 }
-                catch (Exception ex)
-                {
-                    return Ok(new
-                    {
-                        succes = false,
-                        message = ex.Message
-                    });
-                }
+
+                //then save changes
+                await _systemuser.SaveChanges();
 
                 //return transaction summary to user --this way 
                 return Ok(new
                 {
-                    success = true,
+                    success = creditResponse,
                     type = "Credit",
                     message = "You have Sucesfully fund your wallet",
                     balance_before = balanceBefore,
@@ -294,6 +253,7 @@ namespace Wallet_API.Controllers
                     Beneficiary = "Self",
                     narration = model.Narration
                 });
+
             }
 
             catch (Exception ex)
@@ -308,7 +268,6 @@ namespace Wallet_API.Controllers
         {
             try
             {
-                //To:Do -- move credit and debit into a fucntion 
                 var refff = Guid.NewGuid().ToString(); //ref for this transaction
 
                 //check if user exist 
@@ -350,7 +309,7 @@ namespace Wallet_API.Controllers
                 //grab sender details and receiver details
                 var currentBalance = walletAcct1.Balance;
                 var amountToSend = model.Amount;
-                if(amountToSend  > currentBalance)
+                if (amountToSend > currentBalance)
                 {
                     return Ok(new
                     {
@@ -359,63 +318,33 @@ namespace Wallet_API.Controllers
                     });
 
                 }
+
                 //process transaction for sender 
                 decimal bal = 0.0000m;   // explicit cast to decimal
                 bal = model.Amount; //amount user intend to send 
 
-                var balancebefore_Sender = walletAcct1.Balance;
+                var balancebefore_Sender = currentBalance;
                 var newBalance = (balancebefore_Sender) - (bal);
-                walletAcct1.Balance = newBalance;
 
-                //Create TrasanctionHist for Sender
-                //create Transaction history 
-                var newhistory_Sender = new TransactionHistory
-                {
-                    Purpose = "Transfer",
-                    reference = refff,
-                    Txn_type = "Debit",
-                    wallet = walletAcct1,
-                    balance_before = balancebefore_Sender,
-                    balance_after = newBalance,
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now
-                };
+                //-- Call Debit function
+              
+                var DebitResponse = await Debit(walletAcct1, balancebefore_Sender, newBalance, refff);
 
-                try
+                if (!DebitResponse == true)
                 {
-
-                    var newHist_Sender = _systemuser.CreateTransactHist(newhistory_Sender);
-                }
-                catch (Exception ex)
-                {
-                    return Ok(new { success = false, message = "Something went wrong pls try again later" });
+                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
                 }
 
                 //process transaction for Receiever 
                 var balancebefore_Receiever = walletAcct2.Balance;
                 var balanceAfter = (balancebefore_Receiever) + (bal);
-                walletAcct2.Balance = balanceAfter;
 
-                //Create TrasanctionHist for Receiver
-                var newhistory_Receiever = new TransactionHistory
-                {
-                    Purpose = "Deposit",
-                    reference = refff,
-                    Txn_type = "Credit",
-                    wallet = walletAcct2,
-                    balance_before = balancebefore_Receiever,
-                    balance_after = balanceAfter,
-                    created_at = DateTime.Now,
-                    updated_at = DateTime.Now
-                };
+                // call Credit function 
+                var CreditResponse = await Credit(walletAcct2, balancebefore_Receiever, balanceAfter, refff);
 
-                try
+                if (!CreditResponse == true)
                 {
-                    var newHist_Receiever = _systemuser.CreateTransactHist(newhistory_Receiever);
-                }
-                catch (Exception ex)
-                {
-                    return Ok(new { success = false, message = "Something went wrong pls try again later" });
+                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
                 }
 
                 //call save changes
@@ -434,11 +363,11 @@ namespace Wallet_API.Controllers
                 });
 
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 return Ok(new { succes = false, messsage = ex.Message });
             }
-          
+
         }
 
         //systemt user id needed
@@ -446,7 +375,7 @@ namespace Wallet_API.Controllers
         public IActionResult getMyTransactionHistory(int Id)
         {
             try
-            { 
+            {
                 //check if system user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
@@ -491,7 +420,7 @@ namespace Wallet_API.Controllers
                 catch (Exception ex)
                 {
                     return Ok(new { succes = false, message = ex.Message });
-                } 
+                }
             }
 
             catch (Exception ex)
@@ -503,6 +432,314 @@ namespace Wallet_API.Controllers
                 });
             }
 
+        }
+
+
+
+        //systemt user id needed
+        [HttpPost("WithdrawFund/{Id}")]
+        public async Task<IActionResult> Withdraw(int Id, WithdrawFundDTOW model)
+        {
+            try
+            {
+                var refff = Guid.NewGuid().ToString(); //ref for this transaction
+
+                //check if user exist 
+                var userss = _systemuser.getSingleSystemUser(Id);
+                if (userss == null)
+                {
+                    //bounce back if they dont exist 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+                //check if wallet exist
+                //grabb Sender wallet
+                var walletAcct = _systemuser.getMyWallet(Id);
+                if (walletAcct == null)
+                {
+                    //bounce back if they dont have a wallet yet 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "You dont have a Wallet Account, Pls create one"
+                    });
+                }
+
+                //grab sender balance details
+                var currentBalance = walletAcct.Balance;
+                var amountToWithdraw = model.Amount; 
+                if (amountToWithdraw > currentBalance)
+                {
+                    return Ok(new
+                    {
+                        success = false,
+                        message = "Insufficient balance"
+                    });
+
+                }
+
+                //process transaction for USer 
+                decimal bal = 0.0000m;   // explicit cast to decimal
+                bal = model.Amount; //amount user intend to withdraw 
+
+                var balancebefore = currentBalance; 
+                var newBalance = (balancebefore) - (bal);
+
+                //-- Call Debit function
+                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff);
+
+                if (!DebitResponse == true)
+                {
+                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                }
+
+                //call save changes
+                await _systemuser.SaveChanges();
+
+                //retun response body --this way
+                return Ok(new
+                {
+                    success = true,
+                    type = "Debit",
+                    message = "Withdraw Succesful",
+                    balance_before = balancebefore,
+                    balance_after = newBalance,
+                    Beneficiary = "Self",
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { succes = false, messsage = ex.Message });
+            }
+
+        }
+
+
+        //systemt user id needed
+        [HttpPost("ReverseTransaction/{Id}")]
+        public async Task<IActionResult> Reversal(int Id, ReverseTransactionDTOW model)  
+        {
+            try
+            {
+                var refff = Guid.NewGuid().ToString(); //ref for this transaction
+
+                //check if user exist 
+                var userss = _systemuser.getSingleSystemUser(Id);
+                if (userss == null)
+                {
+                    //bounce back if they dont exist 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "User Not Found"
+                    });
+                }
+                //check if wallet exist
+                //grabb Sender wallet
+                var walletAcct = _systemuser.getMyWallet(Id);
+                if (walletAcct == null)
+                {
+                    //bounce back if they dont have a wallet yet 
+                    return NotFound(new
+                    {
+                        succes = false,
+                        message = "You dont have a Wallet Account, Pls create one"
+                    });
+                }
+
+                //grab sender balance details
+                var currentBalance = walletAcct.Balance;
+                var amountToWithdraw = model.Amount;
+                if (amountToWithdraw > currentBalance)
+                {
+                    return Ok(new
+                    {
+                        success = false,
+                        message = "Insufficient balance"
+                    });
+
+                }
+
+                //process transaction for USer 
+                decimal bal = 0.0000m;   // explicit cast to decimal
+                bal = model.Amount; //amount user intend to withdraw 
+
+                var balancebefore = currentBalance;
+                var newBalance = (balancebefore) - (bal);
+
+                //-- Call Debit function
+                var DebitResponse = await Debit(walletAcct, balancebefore, newBalance, refff);
+
+                if (!DebitResponse == true)
+                {
+                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                }
+
+                //call save changes
+                await _systemuser.SaveChanges();
+
+                //retun response body --this way
+                return Ok(new
+                {
+                    success = true,
+                    type = "Debit",
+                    message = "Withdraw Succesful",
+                    balance_before = balancebefore,
+                    balance_after = newBalance,
+                    Beneficiary = "Self",
+                });
+
+            }
+            catch (Exception ex)
+            {
+                return Ok(new { succes = false, messsage = ex.Message });
+            }
+
+        }
+
+        //credit wallet 
+        private async Task<bool> CreateAWallet(int userId, string walletName)
+        {
+            //get system user 
+            var userss = _systemuser.getSingleSystemUser(userId);
+            if (userss == null)
+            {
+                //var walletresponse = new CreateWalletDTO
+                //{
+                //    Success = false,
+                //    Message = "User Not Found"
+                //};
+                return false;
+            }
+            var walletAcct = _systemuser.getMyWallet(userId);
+            if (walletAcct != null)
+            {
+                //var walletresponse = new CreateWalletDTO
+                //{
+                //    Success = false,
+                //    Message = "You have an already existing wallet Account"
+                //};
+                return false;
+            }
+
+            try
+            {
+                decimal bal = 0.0000m; // explicit cast to decimal with the prefix "m", float is "f"
+                var newWallet = new WalletAccount
+                {
+                    Name = walletName,
+                    user = userss,
+                    Balance = bal,
+                    Created_at = DateTime.Now
+                };
+
+                //create Wallet
+                var Wallet = _systemuser.CreateWallet(newWallet);
+                await _systemuser.SaveChanges();
+
+                var walletresponse = new CreateWalletDTO
+                {
+                    Success = true,
+                    Message = "wallet Created Sucesfully"
+                };
+
+               return true;
+              
+            }
+
+            catch (Exception ex)
+            {
+                //var walletresponse = new CreateWalletDTO
+                //{
+                //    Success = false,
+                //    Message = ex.Message
+                //};
+                return false;
+            }
+        }
+
+        //credit wallet 
+        private async Task<bool> Credit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff)
+        {
+            // make changes to wallet
+            walletAccount.Balance = balAfter;
+
+            //create Transaction history 
+            var newhistory = new TransactionHistory
+            {
+                Purpose = "Deposit",
+                reference = refff,
+                Txn_type = "Credit",
+                wallet = walletAccount,
+                balance_before = balbefore,
+                balance_after = balAfter,
+                created_at = DateTime.Now,
+                updated_at = DateTime.Now
+            };
+
+            try
+            {
+                var newHist = _systemuser.CreateTransactHist(newhistory);
+                if (newHist == null)
+                {
+                    return false;
+                }
+
+                ////call save changes 
+                //await _systemuser.SaveChanges();
+
+
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+
+            //return transaction summary to user --this way 
+            return true;
+        }
+
+        //Debit wallet 
+        private async Task<bool> Debit(WalletAccount walletAccount, decimal balbefore, decimal balAfter, string refff)
+        {
+            // make changes to wallet
+            walletAccount.Balance = balAfter;
+
+            //create Transaction history 
+            var newhistory = new TransactionHistory
+            {
+                Purpose = "Deposit",
+                reference = refff,
+                Txn_type = "Credit",
+                wallet = walletAccount,
+                balance_before = balbefore,
+                balance_after = balAfter,
+                created_at = DateTime.Now,
+                updated_at = DateTime.Now
+            };
+
+            try
+            {
+                var newHist = _systemuser.CreateTransactHist(newhistory);
+                if (newHist == null)
+                {
+                    return false;
+                }
+
+                ////call save changes 
+                //await _systemuser.SaveChanges();
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+
+            // 
+            return true;
         }
     }
 }
