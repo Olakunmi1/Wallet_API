@@ -122,7 +122,7 @@ namespace Wallet_API.Controllers
                         {
                             success = true,
                             message = "Registration was Succesful, You can Log in to fund your wallet",
-                            WalletName = Newwallet,
+                            WalletName = Newwallet.Name,
                             Email = user.Email
 
                         });

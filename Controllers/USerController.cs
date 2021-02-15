@@ -409,7 +409,9 @@ namespace Wallet_API.Controllers
                             balance_after = x.balance_after,
                             Purpose = x.Purpose,
                             created_at = x.created_at,
-                            updated_at = x.updated_at
+                            updated_at = x.updated_at,
+                            WalletId = x.wallet.ID,
+                            Amount = x.Amount
                         });
 
                     return Ok(new
@@ -579,22 +581,8 @@ namespace Wallet_API.Controllers
                         message = "Invalid reference, No history"
                     });
                 }
-
-
-                var getTransactHistory_ReadDto = getTransactHistory
-                    .Select(x => new TransactHistDTO
-                    {
-                        Txn_type = x.Txn_type,
-                        balance_before = x.balance_before,
-                        balance_after = x.balance_after,
-                        Purpose = x.Purpose,
-                        created_at = x.created_at,
-                        updated_at = x.updated_at,
-                        WalletId = x.wallet.ID,
-                        Amount = x.Amount
-                    });
                 //create a foreach loop and check transaction type, 
-                foreach(var history in getTransactHistory_ReadDto)
+                foreach(var history in getTransactHistory)
                 {
                     //check transactionType
                     if(history.Txn_type == "Debit")
@@ -613,33 +601,37 @@ namespace Wallet_API.Controllers
                         }
                     }
 
-                    //call debit function 
-                    var reff2 = Guid.NewGuid().ToString(); //ref for this transaction
-                    var walletId_Receipeint = history.WalletId;
-                    //check if wallet exist
-                    //grabb wallet
-                    var walletAcct2 = _systemuser.getMyWallet(walletId_Receipeint);
-                    if (walletAcct2 == null)
+                    if(history.Txn_type == "Credit")
                     {
-                        //bounce back if they dont have a wallet yet 
-                        return NotFound(new
-                        {
-                            succes = false,
-                            message = "Wallet Account doesnt exist"
-                        });
-                    }
+                        //call debit function 
+                        var reff2 = Guid.NewGuid().ToString(); //ref for this transaction
 
-                    //grab balance details
-                    var currentBalance2 = walletAcct2.Balance;
-                    var amountTodebit =   history.Amount;
-                    var newbal2 = (currentBalance2 - amountTodebit); 
-                    string purpose2 = "Reversal"; 
-                    //call Debit function
-                    var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2, amountTodebit); 
-                    if (!debitResponse == true)
-                    {
-                        return Ok(new { success = false, message = "Something went wrong, pls try again later" });
-                    }
+                        var walletId_Receipeint = history.wallet.ID;
+                        //check if wallet exist
+                        //grabb wallet
+                        var walletAcct2 = _systemuser.getMyWallet_ByID(walletId_Receipeint);
+                        if (walletAcct2 == null)
+                        {
+                            //bounce back if they dont have a wallet yet 
+                            return NotFound(new
+                            {
+                                succes = false,
+                                message = "Wallet Account doesnt exist"
+                            });
+                        }
+
+                        //grab balance details
+                        var currentBalance2 = walletAcct2.Balance;
+                        var amountTodebit = history.Amount;
+                        var newbal2 = (currentBalance2 - amountTodebit);
+                        string purpose2 = "Reversal";
+                        //call Debit function
+                        var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2, amountTodebit);
+                        if (!debitResponse == true)
+                        {
+                            return Ok(new { success = false, message = "Something went wrong, pls try again later" });
+                        }
+                    } 
 
                 }
                 //now savechanges
@@ -773,7 +765,7 @@ namespace Wallet_API.Controllers
             {
                 Purpose = purpose,
                 reference = refff,
-                Txn_type = "Credit",
+                Txn_type = "Debit",
                 wallet = walletAccount,
                 balance_before = balbefore,
                 balance_after = balAfter,
