@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="ReadDTO\getTransactHistResourceParameters.cs" />
     <Compile Remove="WriteDTO\requiredAttribute.cs" />
   </ItemGroup>
 

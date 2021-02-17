@@ -373,7 +373,7 @@ namespace Wallet_API.Controllers
 
         //systemt user id needed
         [HttpGet("getMyTransactionhistory/{Id}")]
-        public IActionResult getMyTransactionHistory(int Id)
+        public IActionResult getMyTransactionHistory(int Id, [FromQuery] getTransactHistResourceParameters getTransact) 
         {
             try
             {
@@ -399,7 +399,7 @@ namespace Wallet_API.Controllers
 
                 try
                 {
-                    var getTransactHistory = _systemuser.GetTransactionHistories(walletAcct.ID);
+                    var getTransactHistory = _systemuser.GetTransactionHistories(walletAcct.ID, getTransact);
 
                     var getTransactHistory_ReadDto = getTransactHistory
                         .Select(x => new TransactHistDTO
