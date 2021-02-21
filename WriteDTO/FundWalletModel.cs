@@ -8,6 +8,8 @@ namespace Wallet_API.WriteDTO
 {
     public class FundWalletModel
     {
+        // [Min(0)]
+        [Range(0.0, 1000000)]
         [Required]
         public decimal Amount { get; set; }
 

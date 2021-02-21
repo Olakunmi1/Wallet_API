@@ -241,17 +241,23 @@ namespace Wallet_API.Controllers
                 //then save changes
                 await _systemuser.SaveChanges();
 
-                //return transaction summary to user --this way 
-                return Ok(new
+                return Ok(new ApiResponseDTO<string>
                 {
-                    success = creditResponse,
-                    type = "Credit",
-                    message = "You have Sucesfully fund your wallet",
-                    balance_before = balanceBefore,
-                    balance_after = newbalance,
-                    Beneficiary = "Self",
-                    narration = model.Narration
+                     Success = true,
+                     Message = "Wallet Funded succesfully" 
                 });
+
+                ////return transaction summary to user --this way 
+                //return Ok(new
+                //{
+                //    success = creditResponse,
+                //    type = "Credit",
+                //    message = "You have Sucesfully fund your wallet",
+                //    balance_before = balanceBefore,
+                //    balance_after = newbalance,
+                //    Beneficiary = "Self",
+                //    narration = model.Narration
+                //});
 
             }
 
@@ -413,12 +419,19 @@ namespace Wallet_API.Controllers
                             WalletId = x.wallet.ID,
                             Amount = x.Amount
                         });
+                    var hist = getTransactHistory_ReadDto.ToList();
 
-                    return Ok(new
+                    return Ok(new ApiResponseDTO<TransactHistDTO>
                     {
-                        success = true,
-                        MyTransactionHistories = getTransactHistory_ReadDto
+                         Success = true,
+                          Results = hist
                     });
+
+                    //return Ok(new
+                    //{
+                    //    success = true,
+                    //    MyTransactionHistories = getTransactHistory_ReadDto
+                    //});
                 }
                 catch (Exception ex)
                 {
