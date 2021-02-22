@@ -93,12 +93,17 @@ namespace Wallet_API.Controllers
                         var newuser = _systemuser.getSingleSystemUser_Byusername(newUserr.Username);
                         if(newuser == null)
                         {
-                            return Ok(new
+
+                            var registerDTO = new RegisterDTO
                             {
-                                success = true,
-                                message = "Registration was Succesful,But couldn't create Your wallet, Log in and Create one",
-                                Username = newUserr.Username,
-                                Email = user.Email
+                                Email = user.Email 
+                            };
+
+                            return Ok(new APIGenericResponseDTO<RegisterDTO>()
+                            {
+                                Success = true,
+                                Message = "Registration was Succesful,But couldn't create Your wallet, Log in and Create one",
+                                Result = registerDTO
                             });
                         }
 
@@ -118,19 +123,23 @@ namespace Wallet_API.Controllers
                         //get newly created wallet 
                         var Newwallet = _systemuser.getMyWalletByUsername(walletAcounnt.Name);
 
-                        return Ok(new
+                        var RegDTO = new RegisterDTO
                         {
-                            success = true,
-                            message = "Registration was Succesful, You can Log in to fund your wallet",
-                            WalletName = Newwallet.Name,
-                            Email = user.Email
+                            Email = user.Email,
+                            WalletName = Newwallet.Name
+                        };
 
+                        return Ok(new APIGenericResponseDTO<RegisterDTO>()
+                        {
+                            Success = true,
+                            Message = "Registration was Succesful, You can Log in to fund your wallet",
+                            Result = RegDTO
                         });
                     }
-                    return Ok(new
+                    return Ok(new ApiResponseDTO<string>()
                     {
-                        success = false,
-                        message = "Registration was not Succesful, Pls try again"
+                        Success = false,
+                        Message = "Registration was not Succesful, Pls try again"
                         
                     });
 
@@ -193,7 +202,7 @@ namespace Wallet_API.Controllers
                    // new Claim(ClaimTypes.Role, userRole),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                         }),
-                        Expires = DateTime.UtcNow.AddMinutes(15),
+                        Expires = DateTime.UtcNow.AddDays(1),
                         SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature),
 
                     };

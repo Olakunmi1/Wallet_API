@@ -84,12 +84,16 @@ namespace Wallet_API.Controllers
                     });
                 }
 
-                return Ok(new
+                var walletDTO = new WalletDTO
                 {
-                    success = true,
-                    message = "Wallet Created Succesfully",
                     WalletName = model.Name,
                     Current_Balance = bal
+                };
+                return Ok(new APIGenericResponseDTO<WalletDTO>()
+                {
+                    Success = true,
+                    Message = "Wallet Created Succesfully",
+                    Result = walletDTO
                 });
             }
 
@@ -130,11 +134,16 @@ namespace Wallet_API.Controllers
                     });
                 }
 
-                return Ok(new
+                var walletDTO = new WalletDTO
                 {
-                    success = true,
                     WalletName = walletAcct.Name,
                     Current_Balance = walletAcct.Balance
+                };
+                return Ok(new APIGenericResponseDTO<WalletDTO>
+                {
+                    Success = true,
+                    Result = walletDTO
+
                 });
 
             }
