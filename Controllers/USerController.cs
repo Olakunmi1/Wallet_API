@@ -176,10 +176,10 @@ namespace Wallet_API.Controllers
             var walletAcct = _systemuser.getMyWallet(id);
             if (walletAcct == null)
             {
-                return Ok(new
+                return Ok(new ApiResponseDTO<string>
                 {
-                    succes = false,
-                    message = "You dont have a Wallet Account"
+                    Success = false,
+                    Message = "You dont have a Wallet Account"
                 });
             }
 
@@ -213,10 +213,10 @@ namespace Wallet_API.Controllers
                 if (userss == null)
                 {
                     //bounce back if they dont exist 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
 
@@ -225,10 +225,10 @@ namespace Wallet_API.Controllers
                 if (walletAcct == null)
                 {
                     //bounce back if they dont have a wallet yet 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account, Pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account, Pls create one"
                     });
                 }
 
@@ -289,10 +289,10 @@ namespace Wallet_API.Controllers
                 if (userss == null)
                 {
                     //bounce back if they dont exist 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
                 //check if wallet exist
@@ -301,10 +301,10 @@ namespace Wallet_API.Controllers
                 if (walletAcct1 == null)
                 {
                     //bounce back if they dont have a wallet yet 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account, Pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account, Pls create one"
                     });
                 }
 
@@ -313,10 +313,10 @@ namespace Wallet_API.Controllers
                 if (walletAcct2 == null)
                 {
                     //bounce back if they receiver have a wallet yet 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "Wallet Account not found. The Receiever doesn't have a Wallet, Pls check with the Receiver"
+                        Success = false,
+                        Message = "Wallet Account not found. The Receiever doesn't have a Wallet, Pls check with the Receiver"
                     });
                 }
 
@@ -325,10 +325,10 @@ namespace Wallet_API.Controllers
                 var amountToSend = model.Amount;
                 if (amountToSend > currentBalance)
                 {
-                    return Ok(new
+                    return Ok(new ApiResponseDTO<string>
                     {
-                        success = false,
-                        message = "Insufficient balance"
+                        Success = false,
+                        Message = "Insufficient balance"
                     });
 
                 }
@@ -347,7 +347,7 @@ namespace Wallet_API.Controllers
 
                 if (!DebitResponse == true)
                 {
-                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                    return Ok(new ApiResponseDTO<string>{ Success = false, Message = "Something went wrong pls try again later" }); 
                 }
 
                 //process transaction for Receiever 
@@ -360,22 +360,26 @@ namespace Wallet_API.Controllers
 
                 if (!CreditResponse == true)
                 {
-                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                    return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later" });
                 }
 
                 //call save changes
                 await _systemuser.SaveChanges();
 
-                //retun response body --this way
-                return Ok(new
+                var transferFundDTO = new TransferFundDTO
                 {
-                    success = true,
-                    type = "Debit",
-                    message = "Transfer Succesful",
                     balance_before = balancebefore_Sender,
                     balance_after = newBalance,
                     Beneficiary = walletAcct2.Name,
-                    narration = model.Narration
+                    narration = model.Narration,
+                    TransactionType = "Debit",
+                };
+                //retun response body --this way
+                return Ok(new APIGenericResponseDTO<TransferFundDTO>
+                {
+                    Success = true,
+                    Message = "Transfer Succesful",
+                    Result = transferFundDTO
                 });
 
             }
@@ -396,19 +400,19 @@ namespace Wallet_API.Controllers
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
                 var walletAcct = _systemuser.getMyWallet(Id);
                 if (walletAcct == null)
                 {
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account yet, pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account yet, pls create one"
                     });
                 }
 
@@ -427,13 +431,13 @@ namespace Wallet_API.Controllers
                             updated_at = x.updated_at,
                             WalletId = x.wallet.ID,
                             Amount = x.Amount
-                        });
-                    var hist = getTransactHistory_ReadDto.ToList();
+                        }).ToList();
+                    //var hist = getTransactHistory_ReadDto.ToList();
 
                     return Ok(new ApiResponseDTO<TransactHistDTO>
                     {
                          Success = true,
-                          Results = hist
+                         Results = getTransactHistory_ReadDto
                     });
 
                     //return Ok(new
@@ -474,10 +478,10 @@ namespace Wallet_API.Controllers
                 if (userss == null)
                 {
                     //bounce back if they dont exist 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
                 //check if wallet exist
@@ -486,10 +490,10 @@ namespace Wallet_API.Controllers
                 if (walletAcct == null)
                 {
                     //bounce back if they dont have a wallet yet 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account, Pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account, Pls create one"
                     });
                 }
 
@@ -498,10 +502,10 @@ namespace Wallet_API.Controllers
                 var amountToWithdraw = model.Amount; 
                 if (amountToWithdraw > currentBalance)
                 {
-                    return Ok(new
+                    return Ok(new ApiResponseDTO<string>
                     {
-                        success = false,
-                        message = "Insufficient balance"
+                        Success = false,
+                        Message = "Insufficient balance"
                     });
 
                 }
@@ -519,21 +523,24 @@ namespace Wallet_API.Controllers
 
                 if (!DebitResponse == true)
                 {
-                    return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
+                    return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later" }); 
                 }
 
                 //call save changes
                 await _systemuser.SaveChanges();
-
-                //retun response body --this way
-                return Ok(new
+                var withdrawFundDTO = new WithdrawFundDTO
                 {
-                    success = true,
-                    type = "Debit",
-                    message = "Withdraw Succesful",
                     balance_before = balancebefore,
                     balance_after = newBalance,
                     Beneficiary = "Self",
+                    TransactionType = "Debit"
+                };
+                //retun response body --this way
+                return Ok(new APIGenericResponseDTO<WithdrawFundDTO>
+                {
+                    Success = true,
+                    Message = "Withdraw Succesful",
+                    Result = withdrawFundDTO
                 });
 
             }
@@ -572,10 +579,10 @@ namespace Wallet_API.Controllers
                 if (userss == null)
                 {
                     //bounce back if they dont exist 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
                 //check if wallet exist
@@ -584,10 +591,10 @@ namespace Wallet_API.Controllers
                 if (walletAcct == null)
                 {
                     //bounce back if they dont have a wallet yet 
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account, Pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account, Pls create one"
                     });
                 }
 
@@ -597,10 +604,10 @@ namespace Wallet_API.Controllers
                 if(getTransactHistory == null)
                 {
                     //bounce back if no history 
-                    return Ok(new
+                    return Ok(new ApiResponseDTO<string>
                     {
-                        success = false,
-                        message = "Invalid reference, No history"
+                        Success = false,
+                        Message = "Invalid reference, No history"
                     });
                 }
                 //create a foreach loop and check transaction type, 
@@ -619,7 +626,7 @@ namespace Wallet_API.Controllers
                         var creditResponse = await Credit(walletAcct, currentBalance, newbal, reff1, purposee, amountToCredit);
                         if (!creditResponse == true)
                         {
-                            return Ok(new { success = false, message = "Something went wrong, pls try again later" });
+                            return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong, pls try again later" });
                         }
                     }
 
@@ -635,10 +642,10 @@ namespace Wallet_API.Controllers
                         if (walletAcct2 == null)
                         {
                             //bounce back if they dont have a wallet yet 
-                            return NotFound(new
+                            return NotFound(new ApiResponseDTO<string>
                             {
-                                succes = false,
-                                message = "Wallet Account doesnt exist"
+                                Success = false,
+                                Message = "Wallet Account doesnt exist"
                             });
                         }
 
@@ -651,7 +658,7 @@ namespace Wallet_API.Controllers
                         var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2, amountTodebit);
                         if (!debitResponse == true)
                         {
-                            return Ok(new { success = false, message = "Something went wrong, pls try again later" });
+                            return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong, pls try again later" });
                         }
                     } 
 
@@ -660,11 +667,10 @@ namespace Wallet_API.Controllers
                 await _systemuser.SaveChanges();
  
                 //return response body
-                return Ok(new
+                return Ok(new ApiResponseDTO<string>
                 {
-                    success = true,
-                    type = "Reversal",
-                    message = "Reversal Succesful"
+                    Success = true,
+                    Message = "Reversal Succesful"
                 });
 
             }
