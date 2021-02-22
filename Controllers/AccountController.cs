@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using Wallet.Data.Entities;
 using Wallet.Data.Interface;
@@ -26,13 +27,16 @@ namespace Wallet_API.Controllers
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _config;
         private readonly SignInManager<ApplicationUser> _signInManager;
+        private readonly ILogger<AccountController> _logger; 
 
-        public AccountController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager, IConfiguration config, SignInManager<ApplicationUser> signInManager)
+        public AccountController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager, 
+            IConfiguration config, SignInManager<ApplicationUser> signInManager, ILogger<AccountController> logger)
         {
             _systemuser = systemuser;
             _userManager = userManager;
             _config = config;
             _signInManager = signInManager;
+            _logger = logger;
         }
 
         //Register with Identity 
@@ -42,6 +46,8 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation("New Client Registration Begin");
+
                 StringBuilder strbld2 = new StringBuilder();
                 var err2 = new List<string>();
                 if (!ModelState.IsValid)
@@ -55,6 +61,7 @@ namespace Wallet_API.Controllers
                         }
                     }
 
+                   
                     return BadRequest(new { message = strbld2 });
                 }
                 //create Account
@@ -68,6 +75,7 @@ namespace Wallet_API.Controllers
                     var message = string.Join(", ", errors.Select(x => x.Code + "," + " " + x.Description));
                     //ModelState.AddModelError("", message);
 
+                    _logger.LogDebug(message, "Bad Request");
                     return BadRequest(new { message = message });
                 }
 
@@ -88,6 +96,8 @@ namespace Wallet_API.Controllers
                     {
 
                         await _systemuser.SaveChanges();  //save changes
+
+                        _logger.LogInformation("New System user created succesfully");
 
                         //get Newly created user by username
                         var newuser = _systemuser.getSingleSystemUser_Byusername(newUserr.Username);
@@ -120,6 +130,7 @@ namespace Wallet_API.Controllers
                         _systemuser.CreateWallet(walletAcounnt);
                         await _systemuser.SaveChanges();
 
+                        _logger.LogInformation("New wallet Account created succesfully");
                         //get newly created wallet 
                         var Newwallet = _systemuser.getMyWalletByUsername(walletAcounnt.Name);
 
@@ -147,7 +158,8 @@ namespace Wallet_API.Controllers
                 catch (Exception ex)
                 {
                     // return error message if there was an exception
-                    return BadRequest(new { message = ex.Message });
+                    _logger.LogError(ex.Message, "An exception occured");
+                    return BadRequest(new { message = "Something went wrong pls try again later" });
                 }
 
             }
@@ -166,6 +178,8 @@ namespace Wallet_API.Controllers
         {
             try
             {
+
+                _logger.LogInformation("User About to get a token");
 
                 StringBuilder strbld2 = new StringBuilder();
                 var err2 = new List<string>();
@@ -216,6 +230,7 @@ namespace Wallet_API.Controllers
                     //var validate = tokenHandler.ValidateToken(tokenString);
 
                     // return basic user info and authentication token
+                    _logger.LogInformation("Returned Token succesfully");
                     return Ok(new
                     {
                         //Id = user.Id,
@@ -227,14 +242,17 @@ namespace Wallet_API.Controllers
                     });
 
                 }
+                _logger.LogDebug(model.email, "Email or password is incorrect");
+
                 return BadRequest(new { message = "Email or password is incorrect" });
             }
 
             catch (Exception ex)
             {
+                _logger.LogError(ex.Message, "An exception Occured");
                 return Ok(new
                 {
-                    message = ex.Message
+                    message = "Something went wrong pls try again later"
                 });
             }
         }
