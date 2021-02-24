@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Wallet.Data.Entities;
 using Wallet.Data.Interface;
 using Wallet_API.ReadDTO;
@@ -18,11 +19,13 @@ namespace Wallet_API.Controllers
     {
         private readonly ISystemuserRepo _systemuser;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly ILogger<USerController> _logger; 
 
-        public USerController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager)
+        public USerController(ISystemuserRepo systemuser, UserManager<ApplicationUser> userManager, ILogger<USerController> logger)
         {
             _systemuser = systemuser;
             _userManager = userManager;
+            this._logger = logger; 
         }
 
 
@@ -31,6 +34,8 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation("User about to create a Wallet");
+
                 var usernamee = User.Identity.Name;
                 StringBuilder strbld2 = new StringBuilder();
                 var err2 = new List<string>();
@@ -45,17 +50,18 @@ namespace Wallet_API.Controllers
                         }
                     }
 
-                    return BadRequest(new { message = strbld2 });
+                    return BadRequest(new ApiResponseDTO<string> { Success = true, Message = strbld2.ToString()});
                 }
 
                 //check if system user exist 
                 var userss = _systemuser.getSingleSystemUser(userId);
                 if (userss == null)
                 {
-                    return NotFound(new
+                    _logger.LogDebug(userId.ToString(), "Invalid User Id");
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
 
@@ -63,10 +69,11 @@ namespace Wallet_API.Controllers
                 var walletAcct = _systemuser.getMyWallet(userId);
                 if (walletAcct != null)
                 {
-                    return Ok(new
+                    _logger.LogInformation("User tried to have a duplicate wallet Account");
+                    return Ok(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You already have a Wallet Account"
+                        Success = false,
+                        Message = "You already have a Wallet Account"
                     });
                 }
 
@@ -89,6 +96,7 @@ namespace Wallet_API.Controllers
                     WalletName = model.Name,
                     Current_Balance = bal
                 };
+                _logger.LogInformation("Wallet Account created Succefully");
                 return Ok(new APIGenericResponseDTO<WalletDTO>()
                 {
                     Success = true,
@@ -99,6 +107,7 @@ namespace Wallet_API.Controllers
 
             catch(Exception ex)
             {
+                _logger.LogError("Exception", ex.Message);
                 return Ok(new
                 {
                     success = false,
@@ -118,19 +127,19 @@ namespace Wallet_API.Controllers
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "User Not Found"
+                        Success = false,
+                        Message = "User Not Found"
                     });
                 }
                 var walletAcct = _systemuser.getMyWallet(Id);
                 if (walletAcct == null)
                 {
-                    return NotFound(new
+                    return NotFound(new ApiResponseDTO<string>
                     {
-                        succes = false,
-                        message = "You dont have a Wallet Account yet, pls create one"
+                        Success = false,
+                        Message = "You dont have a Wallet Account yet, pls create one"
                     });
                 }
 
@@ -150,10 +159,11 @@ namespace Wallet_API.Controllers
 
             catch (Exception ex)
             {
-                return Ok(new
+                _logger.LogError("Exception", ex.Message);
+                return Ok(new ApiResponseDTO<string>
                 {
-                    succes = false,
-                    message = ex.Message
+                    Success = false,
+                    Message = ex.Message
                 });
             }
 
@@ -162,14 +172,16 @@ namespace Wallet_API.Controllers
         [HttpPut("UpdateWalletInfo/{id}")]
         public async Task<IActionResult> UpdatewalletInfo(int id, [FromBody]UpdateWalletModel model)
         {
+            _logger.LogInformation("User about to update wallet Information");
             //check if system user exist 
             var userss = _systemuser.getSingleSystemUser(id);
             if (userss == null)
             {
-                return NotFound(new
+                _logger.LogDebug(id.ToString(), "Invalid User Id");
+                return NotFound(new ApiResponseDTO<string>
                 {
-                    succes = false,
-                    message = "User Not Found"
+                    Success = false,
+                    Message = "User Not Found"
                 });
             }
             //get singlewallet 
@@ -192,12 +204,14 @@ namespace Wallet_API.Controllers
                 // _systemuser.Update(updatedWalet);
                 await _systemuser.SaveChanges();
 
+                _logger.LogInformation("Wallet Account updated Succesfully");
                 return Ok();
             }
             catch (Exception ex)
             {
+                _logger.LogError("Exception", ex.Message);
                 // return error message if there was an exception
-                return Ok(new { success = false, message = ex.Message });
+                return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later " });
             }
         }
 
@@ -208,10 +222,12 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation(model.Amount.ToString(), "User about to fund wallet");
                 //check if user exist within the system 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
+                    _logger.LogDebug(Id.ToString(), "user does not exist");
                     //bounce back if they dont exist 
                     return NotFound(new ApiResponseDTO<string>
                     {
@@ -244,12 +260,14 @@ namespace Wallet_API.Controllers
 
                 if(!creditResponse == true)
                 {
+                    _logger.LogDebug("false", "Credit was not succesfull");
                     return Ok(new { success = false, messgae = "Something went wrong pls try again later" });
                 }
 
                 //then save changes
                 await _systemuser.SaveChanges();
 
+                _logger.LogInformation(model.Amount.ToString(),"Wallet succesfully Credited");
                 return Ok(new ApiResponseDTO<string>
                 {
                      Success = true,
@@ -272,7 +290,8 @@ namespace Wallet_API.Controllers
 
             catch (Exception ex)
             {
-                return Ok(new { succes = false, messsage = ex.Message });
+                _logger.LogError("Exception", ex.Message);
+                return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later " });
             }
         }
 
@@ -282,12 +301,20 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                var info1 = new string[] 
+               {
+                    "To Account" + " " + model.WalletName,
+                    "From Account" + " " + Id.ToString(),
+                    "AmountToTransfer" + " " + model.Amount.ToString()
+               };
+                _logger.LogInformation("User about to transfer fund", info1);
                 var refff = Guid.NewGuid().ToString(); //ref for this transaction
 
                 //check if user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
+                    _logger.LogDebug("Invalid user Id", Id.ToString());
                     //bounce back if they dont exist 
                     return NotFound(new ApiResponseDTO<string>
                     {
@@ -300,6 +327,7 @@ namespace Wallet_API.Controllers
                 var walletAcct1 = _systemuser.getMyWallet(Id);
                 if (walletAcct1 == null)
                 {
+                    _logger.LogDebug("Senders wallet not found");
                     //bounce back if they dont have a wallet yet 
                     return NotFound(new ApiResponseDTO<string>
                     {
@@ -312,6 +340,7 @@ namespace Wallet_API.Controllers
                 var walletAcct2 = _systemuser.getMyWalletByUsername(model.WalletName);
                 if (walletAcct2 == null)
                 {
+                    _logger.LogDebug(model.WalletName, "Invalid wallet Name for Receiver");
                     //bounce back if they receiver have a wallet yet 
                     return NotFound(new ApiResponseDTO<string>
                     {
@@ -320,11 +349,19 @@ namespace Wallet_API.Controllers
                     });
                 }
 
+                var info = new string[]
+                {
+                    "To Account" + " " + model.WalletName,
+                    "From Account" + " " + walletAcct1.Name,
+                    "AmountTransfered" + " " + model.Amount.ToString()
+                };
+
                 //grab sender details and receiver details
                 var currentBalance = walletAcct1.Balance;
                 var amountToSend = model.Amount;
                 if (amountToSend > currentBalance)
                 {
+                    _logger.LogInformation("Insufficient Balance", "current Bal" + " " + currentBalance.ToString(), "Amount to transfer " + " " +  amountToSend.ToString());
                     return Ok(new ApiResponseDTO<string>
                     {
                         Success = false,
@@ -347,6 +384,7 @@ namespace Wallet_API.Controllers
 
                 if (!DebitResponse == true)
                 {
+                    _logger.LogInformation("Debit of Funds failed");
                     return Ok(new ApiResponseDTO<string>{ Success = false, Message = "Something went wrong pls try again later" }); 
                 }
 
@@ -360,6 +398,7 @@ namespace Wallet_API.Controllers
 
                 if (!CreditResponse == true)
                 {
+                    _logger.LogInformation("Credit of funds failed");
                     return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later" });
                 }
 
@@ -374,6 +413,8 @@ namespace Wallet_API.Controllers
                     narration = model.Narration,
                     TransactionType = "Debit",
                 };
+
+                _logger.LogInformation("transfer of Funds Successfull", info);
                 //retun response body --this way
                 return Ok(new APIGenericResponseDTO<TransferFundDTO>
                 {
@@ -385,7 +426,8 @@ namespace Wallet_API.Controllers
             }
             catch (Exception ex)
             {
-                return Ok(new { succes = false, messsage = ex.Message });
+                _logger.LogError("Exception", ex.Message);
+                return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later " });
             }
 
         }
@@ -396,10 +438,12 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation("Get Transaction History");
                 //check if system user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
+                    _logger.LogDebug("user does not exist", Id);
                     return NotFound(new ApiResponseDTO<string>
                     {
                         Success = false,
@@ -448,22 +492,22 @@ namespace Wallet_API.Controllers
                 }
                 catch (Exception ex)
                 {
-                    return Ok(new { succes = false, message = ex.Message });
+                    _logger.LogError("Exception", ex.Message);
+                    return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later " });
                 }
             }
 
             catch (Exception ex)
             {
+                _logger.LogError("Exception", ex.Message);
                 return Ok(new
                 {
                     succes = false,
-                    message = ex.Message
+                    message = "Something went wrong pls try again later "
                 });
             }
 
         }
-
-
 
         //systemt user id needed
         [HttpPost("WithdrawFund/{Id}")]
@@ -471,12 +515,14 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation("User about to withdraw", "Amount to withdraw" + model.Amount.ToString());
                 var refff = Guid.NewGuid().ToString(); //ref for this transaction
 
                 //check if user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
+                    _logger.LogInformation("Invalid User");
                     //bounce back if they dont exist 
                     return NotFound(new ApiResponseDTO<string>
                     {
@@ -502,6 +548,7 @@ namespace Wallet_API.Controllers
                 var amountToWithdraw = model.Amount; 
                 if (amountToWithdraw > currentBalance)
                 {
+                    _logger.LogDebug("Insufficient balance", "current Bal" + " " + currentBalance.ToString(), "Amount to Withdraw " + " " + amountToWithdraw.ToString());
                     return Ok(new ApiResponseDTO<string>
                     {
                         Success = false,
@@ -523,6 +570,7 @@ namespace Wallet_API.Controllers
 
                 if (!DebitResponse == true)
                 {
+                    _logger.LogInformation("Debit / Withdarw Failed");
                     return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong pls try again later" }); 
                 }
 
@@ -535,6 +583,7 @@ namespace Wallet_API.Controllers
                     Beneficiary = "Self",
                     TransactionType = "Debit"
                 };
+                _logger.LogInformation("Withdraw Succesful");
                 //retun response body --this way
                 return Ok(new APIGenericResponseDTO<WithdrawFundDTO>
                 {
@@ -546,11 +595,11 @@ namespace Wallet_API.Controllers
             }
             catch (Exception ex)
             {
-                return Ok(new { succes = false, messsage = ex.Message });
+                _logger.LogError("Exception", ex.Message);
+                return Ok(new { succes = false, messsage = "Something went wrong pls try again later " });
             }
 
         }
-
 
         //systemt user id needed
         [HttpPost("ReverseTransaction/{Id}")]
@@ -558,6 +607,7 @@ namespace Wallet_API.Controllers
         {
             try
             {
+                _logger.LogInformation("Reversal process about to occur", model.Reference, "UserId = " + Id.ToString());
                 StringBuilder strbld2 = new StringBuilder();
                 var err2 = new List<string>();
 
@@ -572,13 +622,14 @@ namespace Wallet_API.Controllers
                         }
                     }
 
-                    return BadRequest(new { message = strbld2 });
+                    return BadRequest(new ApiResponseDTO<string> { Success = false, Message = strbld2.ToString()});
                 }
                 //check if user exist 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
                 {
                     //bounce back if they dont exist 
+                    _logger.LogDebug("Invalid user, Reversal Aborted");
                     return NotFound(new ApiResponseDTO<string>
                     {
                         Success = false,
@@ -604,12 +655,14 @@ namespace Wallet_API.Controllers
                 if(getTransactHistory == null)
                 {
                     //bounce back if no history 
+                    _logger.LogDebug("Invalid reference, Reversal aborted");
                     return Ok(new ApiResponseDTO<string>
                     {
                         Success = false,
                         Message = "Invalid reference, No history"
                     });
                 }
+                decimal amounttt = 0.0000m;
                 //create a foreach loop and check transaction type, 
                 foreach(var history in getTransactHistory)
                 {
@@ -626,6 +679,7 @@ namespace Wallet_API.Controllers
                         var creditResponse = await Credit(walletAcct, currentBalance, newbal, reff1, purposee, amountToCredit);
                         if (!creditResponse == true)
                         {
+                            _logger.LogDebug("Credit failed, Reversal aborted");
                             return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong, pls try again later" });
                         }
                     }
@@ -641,6 +695,7 @@ namespace Wallet_API.Controllers
                         var walletAcct2 = _systemuser.getMyWallet_ByID(walletId_Receipeint);
                         if (walletAcct2 == null)
                         {
+                            _logger.LogDebug("Receipeint wallet not found ");
                             //bounce back if they dont have a wallet yet 
                             return NotFound(new ApiResponseDTO<string>
                             {
@@ -652,12 +707,14 @@ namespace Wallet_API.Controllers
                         //grab balance details
                         var currentBalance2 = walletAcct2.Balance;
                         var amountTodebit = history.Amount;
+                        amounttt = amountTodebit;
                         var newbal2 = (currentBalance2 - amountTodebit);
                         string purpose2 = "Reversal";
                         //call Debit function
                         var debitResponse = await Debit(walletAcct2, currentBalance2, newbal2, reff2, purpose2, amountTodebit);
                         if (!debitResponse == true)
                         {
+                            _logger.LogDebug("Debit failed, reversal aborted");
                             return Ok(new ApiResponseDTO<string> { Success = false, Message = "Something went wrong, pls try again later" });
                         }
                     } 
@@ -665,6 +722,8 @@ namespace Wallet_API.Controllers
                 }
                 //now savechanges
                 await _systemuser.SaveChanges();
+
+                _logger.LogInformation("Reversal Succesful", "Amount Reversed = " + amounttt.ToString());
  
                 //return response body
                 return Ok(new ApiResponseDTO<string>
@@ -676,7 +735,8 @@ namespace Wallet_API.Controllers
             }
             catch (Exception ex)
             {
-                return Ok(new { succes = false, messsage = ex.Message });
+                _logger.LogError("Exception", ex.Message);
+                return Ok(new { succes = false, messsage = "Something went wrong pls try again later " });
             }
 
         }
