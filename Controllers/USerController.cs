@@ -222,7 +222,7 @@ namespace Wallet_API.Controllers
         {
             try
             {
-                _logger.LogInformation(model.Amount.ToString(), "User about to fund wallet");
+                _logger.LogInformation("User about to fund wallet", model.Amount.ToString());
                 //check if user exist within the system 
                 var userss = _systemuser.getSingleSystemUser(Id);
                 if (userss == null)
