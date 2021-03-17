@@ -6,13 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Wallet.Services\**" />
-    <Content Remove="Wallet.Services\**" />
-    <EmbeddedResource Remove="Wallet.Services\**" />
-    <None Remove="Wallet.Services\**" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Compile Remove="ReadDTO\getTransactHistResourceParameters.cs" />
     <Compile Remove="WriteDTO\requiredAttribute.cs" />
   </ItemGroup>
@@ -20,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="IdentityModel" Version="5.0.1" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.1.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="5.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.1.12" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.3">
       <PrivateAssets>all</PrivateAssets>
@@ -33,11 +27,6 @@
     <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="6.0.1" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="6.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="6.0.2" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\Wallet.Data\Wallet.Data.csproj" />
-    <ProjectReference Include="..\Wallet.Services\Wallet.Services.csproj" />
   </ItemGroup>
 
 
