@@ -34,7 +34,7 @@ namespace Wallet.Data.Dbcontext
             {
                 //("decimal(20, 4)");
                 property.SetPrecision(20);
-                property.SetScale(4);
+                property.SetScale(4); // set  precision of decimal 
             }
         }
     }
